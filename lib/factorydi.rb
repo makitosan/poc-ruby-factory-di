@@ -8,6 +8,13 @@ class String
   end
 end
 
+def class_exists?(class_name)
+  klass = Module.const_get(class_name)
+  return klass.is_a?(Class)
+rescue NameError
+  return false
+end
+
 class FactoryContainer
   include Singleton
 
@@ -22,10 +29,28 @@ class FactoryContainer
   end
 
   def initialize_factory(name)
-    @factories[name] = Object.const_get(name.to_s.to_camel).new do |c|
-      class_name = c.class.name.gsub('Factory', '')
-      Object.const_get(class_name).new
+    if class_exists?(name.to_s.to_camel)
+      @factories[name] = Object.const_get(name.to_s.to_camel).new do |c|
+        class_name = c.class.name.gsub('Factory', '')
+        Object.const_get(class_name).new
+      end
+    else
+      # use DefaultFactory for undefined factory classes
+      @factories[name] = DefaultFactory.new name
     end
+  end
+end
+
+class DefaultFactory
+  attr_accessor :name
+
+  def initialize name
+    @name = name
+  end
+
+  def create
+    class_name = name.to_s.to_camel.gsub('Factory', '')
+    Object.const_get(class_name).new
   end
 end
 
@@ -62,6 +87,10 @@ class Original
   end
 end
 
+class Hoge
+
+end
+
 class HogeService
 
 end
@@ -87,3 +116,7 @@ puts fa.create.title
 
 ofa = FactoryContainer.instance.get(:original_factory)
 puts ofa.create.name
+
+dfa = FactoryContainer.instance.get(:hoge_factory)
+puts dfa
+puts dfa.create
