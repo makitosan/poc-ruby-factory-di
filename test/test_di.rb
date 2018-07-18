@@ -6,6 +6,7 @@ require 'factorydi/factory_container'
 
 class TestDi < Minitest::Test
   describe 'TestDi' do
+
     before do
       @fc = FactoryContainer.instance
       @fc.reset
@@ -42,9 +43,20 @@ class TestDi < Minitest::Test
       mocked_factory = MiniTest::Mock.new.expect(:create, my) # create mock
       @fc.factories[:original_factory] = mocked_factory # replace original_factory
       o = @fc.get(:original_factory).create
-      assert_equal 'CEO', o.title
-      assert_equal 'My', o.name
+      o.title.must_equal 'CEO'
+      o.name.must_equal 'My'
 
+    end
+
+    it 'test MyService uses mocked object inside of its method run' do
+      require 'factorydi/services/my_service'
+      my = My.new
+      my.title = 'CTO'
+      mocked_factory = MiniTest::Mock.new.expect(:create, my) # create mock
+      @fc.factories[:my_factory] = mocked_factory # replace original_factory
+
+      service = MyService.new
+      service.run.must_equal 'CTO'
     end
   end
 end
